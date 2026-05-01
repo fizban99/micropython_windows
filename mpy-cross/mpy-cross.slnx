@@ -1,0 +1,7 @@
+<Solution>
+  <Configurations>
+    <Platform Name="x64" />
+    <Platform Name="x86" />
+  </Configurations>
+  <Project Path="mpy-cross.vcxproj" Id="740f3a30-3b6c-4b59-9c50-ae4d5a4a9d12" />
+</Solution>

@@ -32,3 +32,50 @@ user.props
 # Created by ci.sh esp8266 targets
 /xtensa-lx106-elf-standalone.tar.gz
 /xtensa-lx106-elf/
+
+# Visual Studio user/cache files
+.vs/
+*.suo
+*.user
+*.VC.db
+*.VC.VC.opendb
+ipch/
+*.ipch
+
+# Visual Studio / MSVC build outputs
+[Bb]uild/
+[Bb]uild_*/
+build_ccg/
+x64/
+x86/
+Debug/
+Release/
+Releasex64/
+Debugx64/
+
+# Compiled objects and binaries
+*.obj
+*.exe
+*.dll
+*.lib
+*.exp
+*.pdb
+*.ilk
+*.map
+*.tlog
+*.log
+*.recipe
+*.lastbuildstate
+
+# MicroPython generated headers / qstr output
+genhdr/
+*.qstr
+*.pp
+*.collected
+*.collected.hash
+*.tmp
+
+# Copilot / IDE indices
+CopilotIndices/
+FileContentIndex/
+*.vsidx

@@ -2,7 +2,7 @@
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup>
     <PyPathsIncluded>True</PyPathsIncluded>
-
+	<PyPython>D:\python315\python.exe</PyPython>
     <!-- The properties below specify the directory structure.
          This defaults to, for example for Configuration = Debug and Platform = x64:
 
@@ -26,7 +26,7 @@
 
     <!-- Start from project root -->
     <PyBaseDir>$([System.IO.Path]::GetFullPath(`$(MSBuildThisFileDirectory)..\..\..`))\</PyBaseDir>
-    <PyWinDir>$(PyBaseDir)ports\windows\</PyWinDir>
+    <PyWinDir>$(PyBaseDir)ports\windows\</PyWinDir>  
     <PyBuildDir Condition="'$(PyBuildDir)' == ''">$(PyWinDir)$(PyBuild)\</PyBuildDir>
     <PyVariantDir Condition="'$(PyVariantDir)' == ''">$(PyWinDir)variants\$(PyVariant)\</PyVariantDir>
     <PyTargetDir Condition="'$(PyTargetDir)' == ''">$(PyBuildDir)</PyTargetDir>

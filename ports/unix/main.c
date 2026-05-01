@@ -57,7 +57,7 @@
 #include "stack_size.h"
 #include "shared/runtime/pyexec.h"
 
-// Command line options, with their defaults
+ // Command line options, with their defaults
 bool mp_compile_only = false;
 static uint emit_opt = MP_EMIT_OPT_NONE;
 
@@ -80,20 +80,44 @@ long heap_size = 1024 * 1024 * (sizeof(mp_uint_t) / 4);
 #error "The unix port requires MICROPY_PY_SYS_ARGV=1"
 #endif
 
-static void stderr_print_strn(void *env, const char *str, size_t len) {
+static void stderr_print_strn(void* env, const char* str, size_t len) {
     (void)env;
     ssize_t ret;
     MP_HAL_RETRY_SYSCALL(ret, write(STDERR_FILENO, str, len), {});
     mp_os_dupterm_tx_strn(str, len);
 }
 
-const mp_print_t mp_stderr_print = {NULL, stderr_print_strn};
+const mp_print_t mp_stderr_print = { NULL, stderr_print_strn };
 
+
+// added for uSunfish
+static int do_default_module(void) {
+    nlr_buf_t nlr;
+    mp_obj_t import_args[4];
+
+    import_args[0] = mp_obj_new_str_from_cstr("uci");
+    import_args[1] = mp_const_none;
+    import_args[2] = mp_const_none;
+
+    // import leaf module as __main__
+    import_args[3] = mp_const_false;
+
+    mp_hal_set_interrupt_char(CHAR_CTRL_C);
+    if (nlr_push(&nlr) == 0) {
+        mp_builtin___import__(4, import_args);
+        nlr_pop();
+        return 0;
+    }
+    else {
+        mp_obj_print_exception(&mp_stderr_print, MP_OBJ_FROM_PTR(nlr.ret_val));
+        return 0;
+    }
+}
 #define FORCED_EXIT (0x100)
 // If exc is SystemExit, return value where FORCED_EXIT bit set,
 // and lower 8 bits are SystemExit value. For all other exceptions,
 // return 1.
-static int handle_uncaught_exception(mp_obj_base_t *exc) {
+static int handle_uncaught_exception(mp_obj_base_t* exc) {
     // check for SystemExit
     if (mp_obj_is_subclass_fast(MP_OBJ_FROM_PTR(exc->type), MP_OBJ_FROM_PTR(&mp_type_SystemExit))) {
         // None is an exit value of 0; an int is its value; anything else is 1
@@ -116,38 +140,39 @@ static int handle_uncaught_exception(mp_obj_base_t *exc) {
 // Returns standard error codes: 0 for success, 1 for all other errors,
 // except if FORCED_EXIT bit is set then script raised SystemExit and the
 // value of the exit is in the lower 8 bits of the return value
-static int execute_from_lexer(int source_kind, const void *source, mp_parse_input_kind_t input_kind, bool is_repl) {
+static int execute_from_lexer(int source_kind, const void* source, mp_parse_input_kind_t input_kind, bool is_repl) {
     mp_hal_set_interrupt_char(CHAR_CTRL_C);
 
     nlr_buf_t nlr;
     if (nlr_push(&nlr) == 0) {
         // create lexer based on source kind
-        mp_lexer_t *lex;
+        mp_lexer_t* lex;
         if (source_kind == LEX_SRC_STR) {
-            const char *line = source;
+            const char* line = source;
             lex = mp_lexer_new_from_str_len(MP_QSTR__lt_stdin_gt_, line, strlen(line), false);
-        } else { // LEX_SRC_STDIN
+        }
+        else { // LEX_SRC_STDIN
             lex = mp_lexer_new_from_fd(MP_QSTR__lt_stdin_gt_, 0, false);
         }
 
         qstr source_name = lex->source_name;
 
-        #if MICROPY_MODULE___FILE__
+#if MICROPY_MODULE___FILE__
         if (input_kind == MP_PARSE_FILE_INPUT) {
             mp_store_global(MP_QSTR___file__, MP_OBJ_NEW_QSTR(source_name));
         }
-        #endif
+#endif
 
         mp_parse_tree_t parse_tree = mp_parse(lex, input_kind);
 
-        #if defined(MICROPY_UNIX_COVERAGE)
+#if defined(MICROPY_UNIX_COVERAGE)
         // allow to print the parse tree in the coverage build
         if (mp_verbose_flag >= 3) {
             printf("----------------\n");
             mp_parse_node_print(&mp_plat_print, parse_tree.root, 0);
             printf("----------------\n");
         }
-        #endif
+#endif
 
         mp_obj_t module_fun = mp_compile(&parse_tree, source_name, is_repl);
 
@@ -161,7 +186,8 @@ static int execute_from_lexer(int source_kind, const void *source, mp_parse_inpu
         nlr_pop();
         return 0;
 
-    } else {
+    }
+    else {
         // uncaught exception
         mp_hal_set_interrupt_char(-1);
         mp_handle_pending(MP_HANDLE_PENDING_CALLBACKS_AND_CLEAR_EXCEPTIONS);
@@ -172,10 +198,10 @@ static int execute_from_lexer(int source_kind, const void *source, mp_parse_inpu
 #if MICROPY_USE_READLINE == 1
 #include "shared/readline/readline.h"
 #else
-static char *strjoin(const char *s1, int sep_char, const char *s2) {
+static char* strjoin(const char* s1, int sep_char, const char* s2) {
     int l1 = strlen(s1);
     int l2 = strlen(s2);
-    char *s = malloc(l1 + l2 + 2);
+    char* s = malloc(l1 + l2 + 2);
     memcpy(s, s1, l1);
     if (sep_char != 0) {
         s[l1] = sep_char;
@@ -188,7 +214,7 @@ static char *strjoin(const char *s1, int sep_char, const char *s2) {
 #endif
 
 static int do_repl(void) {
-    #if MICROPY_USE_READLINE == 1
+#if MICROPY_USE_READLINE == 1
 
     // use MicroPython supplied readline-based REPL
 
@@ -198,7 +224,8 @@ static int do_repl(void) {
             if ((ret = pyexec_raw_repl()) != 0) {
                 break;
             }
-        } else {
+        }
+        else {
             if ((ret = pyexec_friendly_repl()) != 0) {
                 break;
             }
@@ -206,7 +233,7 @@ static int do_repl(void) {
     }
     return ret;
 
-    #else
+#else
 
     // use simple readline
 
@@ -215,17 +242,17 @@ static int do_repl(void) {
     mp_hal_stdout_tx_str("\nUse Ctrl-D to exit, Ctrl-E for paste mode\n");
 
     for (;;) {
-        char *line = prompt((char *)mp_repl_get_ps1());
+        char* line = prompt((char*)mp_repl_get_ps1());
         if (line == NULL) {
             // EOF
             return 0;
         }
         while (mp_repl_continue_with_input(line)) {
-            char *line2 = prompt((char *)mp_repl_get_ps2());
+            char* line2 = prompt((char*)mp_repl_get_ps2());
             if (line2 == NULL) {
                 break;
             }
-            char *line3 = strjoin(line, '\n', line2);
+            char* line3 = strjoin(line, '\n', line2);
             free(line);
             free(line2);
             line = line3;
@@ -238,11 +265,11 @@ static int do_repl(void) {
         }
     }
 
-    #endif
+#endif
 }
 
 static inline int convert_pyexec_result(int ret) {
-    #if MICROPY_PYEXEC_ENABLE_EXIT_CODE_HANDLING
+#if MICROPY_PYEXEC_ENABLE_EXIT_CODE_HANDLING
     // With exit code handling enabled:
     // pyexec returns exit code with PYEXEC_FORCED_EXIT flag set for SystemExit
     // Unix port expects: 0 for success, non-zero for error/exit
@@ -252,65 +279,67 @@ static inline int convert_pyexec_result(int ret) {
     }
     // Normal execution or exception: return as-is (0 for success, 1 for exception)
     return ret;
-    #else
+#else
     // pyexec returns 1 for success, 0 for exception, PYEXEC_FORCED_EXIT for SystemExit
     // Convert to unix port's expected codes: 0 for success, 1 for exception, FORCED_EXIT|val for SystemExit
     if (ret == 1) {
         return 0; // success
-    } else if (ret & PYEXEC_FORCED_EXIT) {
+    }
+    else if (ret & PYEXEC_FORCED_EXIT) {
         return ret; // SystemExit with exit value in lower 8 bits
-    } else {
+    }
+    else {
         return 1; // exception
     }
-    #endif
+#endif
 }
 
-static int do_file(const char *file) {
+static int do_file(const char* file) {
     return convert_pyexec_result(pyexec_file(file));
 }
 
-static int do_str(const char *str) {
+static int do_str(const char* str) {
     vstr_t vstr;
-    vstr.buf = (char *)str;
+    vstr.buf = (char*)str;
     vstr.len = strlen(str);
     int ret = pyexec_vstr(&vstr, true);
     return convert_pyexec_result(ret);
 }
 
-static void print_help(char **argv) {
+static void print_help(char** argv) {
     printf(
         "usage: %s [<opts>] [-X <implopt>] [-c <command> | -m <module> | <filename>]\n"
         "Options:\n"
         "--version : show version information\n"
         "-h : print this help message\n"
         "-i : enable inspection via REPL after running command/module/file\n"
-        #if MICROPY_DEBUG_PRINTERS
+#if MICROPY_DEBUG_PRINTERS
         "-v : verbose (trace various operations); can be multiple\n"
-        #endif
+#endif
         "-O[N] : apply bytecode optimizations of level N\n"
         "\n"
         "Implementation specific options (-X):\n", argv[0]
-        );
+    );
     int impl_opts_cnt = 0;
     printf(
         "  compile-only                 -- parse and compile only\n"
-        #if MICROPY_EMIT_NATIVE
+#if MICROPY_EMIT_NATIVE
         "  emit={bytecode,native,viper} -- set the default code emitter\n"
-        #else
+#else
         "  emit=bytecode                -- set the default code emitter\n"
-        #endif
-        );
+#endif
+    );
     impl_opts_cnt++;
-    #if MICROPY_ENABLE_GC
+#if MICROPY_ENABLE_GC
     printf(
         "  heapsize=<n>[w][K|M] -- set the heap size for the GC (default %ld)\n"
         , heap_size);
     impl_opts_cnt++;
-    #endif
-    #if defined(__APPLE__)
+#endif
+#if defined(__APPLE__)
     printf("  realtime -- set thread priority to realtime\n");
     impl_opts_cnt++;
-    #endif
+#endif
 
     if (impl_opts_cnt == 0) {
         printf("  (none)\n");
@@ -323,7 +352,7 @@ static int invalid_args(void) {
 }
 
 // Process options which set interpreter init options
-static void pre_process_options(int argc, char **argv) {
+static void pre_process_options(int argc, char** argv) {
     for (int a = 1; a < argc; a++) {
         if (argv[a][0] == '-') {
             if (strcmp(argv[a], "-c") == 0 || strcmp(argv[a], "-m") == 0) {
@@ -342,19 +371,24 @@ static void pre_process_options(int argc, char **argv) {
                     exit(invalid_args());
                 }
                 if (0) {
-                } else if (strcmp(argv[a + 1], "compile-only") == 0) {
+                }
+                else if (strcmp(argv[a + 1], "compile-only") == 0) {
                     mp_compile_only = true;
-                } else if (strcmp(argv[a + 1], "emit=bytecode") == 0) {
+                }
+                else if (strcmp(argv[a + 1], "emit=bytecode") == 0) {
                     emit_opt = MP_EMIT_OPT_BYTECODE;
-                #if MICROPY_EMIT_NATIVE
-                } else if (strcmp(argv[a + 1], "emit=native") == 0) {
+#if MICROPY_EMIT_NATIVE
+                }
+                else if (strcmp(argv[a + 1], "emit=native") == 0) {
                     emit_opt = MP_EMIT_OPT_NATIVE_PYTHON;
-                } else if (strcmp(argv[a + 1], "emit=viper") == 0) {
+                }
+                else if (strcmp(argv[a + 1], "emit=viper") == 0) {
                     emit_opt = MP_EMIT_OPT_VIPER;
-                #endif
-                #if MICROPY_ENABLE_GC
-                } else if (strncmp(argv[a + 1], "heapsize=", sizeof("heapsize=") - 1) == 0) {
-                    char *end;
+#endif
+#if MICROPY_ENABLE_GC
+                }
+                else if (strncmp(argv[a + 1], "heapsize=", sizeof("heapsize=") - 1) == 0) {
+                    char* end;
                     heap_size = strtol(argv[a + 1] + sizeof("heapsize=") - 1, &end, 0);
                     // Don't bring unneeded libc dependencies like tolower()
                     // If there's 'w' immediately after number, adjust it for
@@ -369,9 +403,11 @@ static void pre_process_options(int argc, char **argv) {
                     }
                     if ((*end | 0x20) == 'k') {
                         heap_size *= 1024;
-                    } else if ((*end | 0x20) == 'm') {
+                    }
+                    else if ((*end | 0x20) == 'm') {
                         heap_size *= 1024 * 1024;
-                    } else {
+                    }
+                    else {
                         // Compensate for ++ below
                         --end;
                     }
@@ -385,29 +421,32 @@ static void pre_process_options(int argc, char **argv) {
                     if (heap_size < 700) {
                         goto invalid_arg;
                     }
-                #endif
-                #if defined(__APPLE__)
-                } else if (strcmp(argv[a + 1], "realtime") == 0) {
-                    #if MICROPY_PY_THREAD
+#endif
+#if defined(__APPLE__)
+                }
+                else if (strcmp(argv[a + 1], "realtime") == 0) {
+#if MICROPY_PY_THREAD
                     mp_thread_is_realtime_enabled = true;
-                    #endif
+#endif
                     // main thread was already initialized before the option
                     // was parsed, so we have to enable realtime here.
                     mp_thread_set_realtime();
-                #endif
-                } else {
+#endif
+                }
+                else {
                 invalid_arg:
                     exit(invalid_args());
                 }
                 a++;
             }
-        } else {
+        }
+        else {
             break; // Not an option but a file
         }
     }
 }
 
-static void set_sys_argv(char *argv[], int argc, int start_arg) {
+static void set_sys_argv(char* argv[], int argc, int start_arg) {
     for (int i = start_arg; i < argc; i++) {
         mp_obj_list_append(mp_sys_argv, MP_OBJ_NEW_QSTR(qstr_from_str(argv[i])));
     }
@@ -415,14 +454,14 @@ static void set_sys_argv(char *argv[], int argc, int start_arg) {
 
 #if MICROPY_PY_SYS_EXECUTABLE
 extern mp_obj_str_t mp_sys_executable_obj;
-static char *executable_path = NULL;
+static char* executable_path = NULL;
 
-static void sys_set_excecutable(char *argv0) {
+static void sys_set_excecutable(char* argv0) {
     if (executable_path == NULL) {
         executable_path = realpath(argv0, NULL);
     }
     if (executable_path != NULL) {
-        mp_obj_str_set_data(&mp_sys_executable_obj, (byte *)executable_path, strlen(executable_path));
+        mp_obj_str_set_data(&mp_sys_executable_obj, (byte*)executable_path, strlen(executable_path));
     }
 }
 #endif
@@ -433,12 +472,12 @@ static void sys_set_excecutable(char *argv0) {
 #define PATHLIST_SEP_CHAR ':'
 #endif
 
-MP_NOINLINE int main_(int argc, char **argv);
+MP_NOINLINE int main_(int argc, char** argv);
 
-int main(int argc, char **argv) {
-    #if MICROPY_PY_THREAD
+int main(int argc, char** argv) {
+#if MICROPY_PY_THREAD
     mp_thread_init();
-    #endif
+#endif
 
     // Define a reasonable stack limit to detect stack overflow.
     mp_uint_t stack_size = 40000 * UNIX_STACK_MULTIPLIER;
@@ -452,8 +491,8 @@ int main(int argc, char **argv) {
     return main_(argc, argv);
 }
 
-MP_NOINLINE int main_(int argc, char **argv) {
-    #ifdef SIGPIPE
+MP_NOINLINE int main_(int argc, char** argv) {
+#ifdef SIGPIPE
     // Do not raise SIGPIPE, instead return EPIPE. Otherwise, e.g. writing
     // to peer-closed socket will lead to sudden termination of MicroPython
     // process. SIGPIPE is particularly nasty, because unix shell doesn't
@@ -465,51 +504,52 @@ MP_NOINLINE int main_(int argc, char **argv) {
     // means "pipe was requested to terminate, it's not an error"), should
     // catch EPIPE themselves.
     signal(SIGPIPE, SIG_IGN);
-    #endif
+#endif
 
     pre_process_options(argc, argv);
 
-    #if MICROPY_ENABLE_GC
-    #if !MICROPY_GC_SPLIT_HEAP
-    char *heap = malloc(heap_size);
+#if MICROPY_ENABLE_GC
+#if !MICROPY_GC_SPLIT_HEAP
+    char* heap = malloc(heap_size);
     gc_init(heap, heap + heap_size);
-    #else
+#else
     assert(MICROPY_GC_SPLIT_HEAP_N_HEAPS > 0);
-    char *heaps[MICROPY_GC_SPLIT_HEAP_N_HEAPS];
+    char* heaps[MICROPY_GC_SPLIT_HEAP_N_HEAPS];
     long multi_heap_size = heap_size / MICROPY_GC_SPLIT_HEAP_N_HEAPS;
     for (size_t i = 0; i < MICROPY_GC_SPLIT_HEAP_N_HEAPS; i++) {
         heaps[i] = malloc(multi_heap_size);
         if (i == 0) {
             gc_init(heaps[i], heaps[i] + multi_heap_size);
-        } else {
+        }
+        else {
             gc_add(heaps[i], heaps[i] + multi_heap_size);
         }
     }
-    #endif
-    #endif
+#endif
+#endif
 
-    #if MICROPY_ENABLE_PYSTACK
-    static mp_obj_t pystack[1024];
+#if MICROPY_ENABLE_PYSTACK
+    static mp_obj_t pystack[4096];
     mp_pystack_init(pystack, &pystack[MP_ARRAY_SIZE(pystack)]);
-    #endif
+#endif
 
     mp_init();
 
-    #if MICROPY_EMIT_NATIVE
+#if MICROPY_EMIT_NATIVE
     // Set default emitter options
     MP_STATE_VM(default_emit_opt) = emit_opt;
-    #else
+#else
     (void)emit_opt;
-    #endif
+#endif
 
-    #if MICROPY_VFS_POSIX
+#if MICROPY_VFS_POSIX
     {
         // Mount the host FS at the root of our internal VFS
         mp_obj_t args[2] = {
             MP_OBJ_TYPE_GET_SLOT(&mp_type_vfs_posix, make_new)(&mp_type_vfs_posix, 0, 0, NULL),
             MP_OBJ_NEW_QSTR(MP_QSTR__slash_),
         };
-        mp_vfs_mount(2, args, (mp_map_t *)&mp_const_empty_map);
+        mp_vfs_mount(2, args, (mp_map_t*)&mp_const_empty_map);
 
         // Make sure the root that was just mounted is the current VFS (it's always at
         // the end of the linked list).  Can't use chdir('/') because that will change
@@ -519,7 +559,7 @@ MP_NOINLINE int main_(int argc, char **argv) {
             MP_STATE_VM(vfs_cur) = MP_STATE_VM(vfs_cur)->next;
         }
     }
-    #endif
+#endif
 
     {
         // sys.path starts as [""]
@@ -527,8 +567,8 @@ MP_NOINLINE int main_(int argc, char **argv) {
         mp_obj_list_append(mp_sys_path, MP_OBJ_NEW_QSTR(MP_QSTR_));
 
         // Add colon-separated entries from MICROPYPATH.
-        char *home = getenv("HOME");
-        char *path = getenv("MICROPYPATH");
+        char* home = getenv("HOME");
+        char* path = getenv("MICROPYPATH");
         if (path == NULL) {
             path = MICROPY_PY_SYS_PATH_DEFAULT;
         }
@@ -543,7 +583,7 @@ MP_NOINLINE int main_(int argc, char **argv) {
         static bool path_remaining;
         path_remaining = *path;
         while (path_remaining) {
-            char *path_entry_end = strchr(path, PATHLIST_SEP_CHAR);
+            char* path_entry_end = strchr(path, PATHLIST_SEP_CHAR);
             if (path_entry_end == NULL) {
                 path_entry_end = path + strlen(path);
                 path_remaining = false;
@@ -556,7 +596,8 @@ MP_NOINLINE int main_(int argc, char **argv) {
                 vstr_add_strn(&vstr, home, home_l);
                 vstr_add_strn(&vstr, path + 1, path_entry_end - path - 1);
                 mp_obj_list_append(mp_sys_path, mp_obj_new_str_from_vstr(&vstr));
-            } else {
+            }
+            else {
                 mp_obj_list_append(mp_sys_path, mp_obj_new_str_via_qstr(path, path_entry_end - path));
             }
             path = path_entry_end + 1;
@@ -565,14 +606,14 @@ MP_NOINLINE int main_(int argc, char **argv) {
 
     mp_obj_list_init(MP_OBJ_TO_PTR(mp_sys_argv), 0);
 
-    #if defined(MICROPY_UNIX_COVERAGE)
+#if defined(MICROPY_UNIX_COVERAGE)
     {
         MP_DECLARE_CONST_FUN_OBJ_0(extra_coverage_obj);
         MP_DECLARE_CONST_FUN_OBJ_0(extra_cpp_coverage_obj);
         mp_store_global(MP_QSTR_extra_coverage, MP_OBJ_FROM_PTR(&extra_coverage_obj));
         mp_store_global(MP_QSTR_extra_cpp_coverage, MP_OBJ_FROM_PTR(&extra_cpp_coverage_obj));
     }
-    #endif
+#endif
 
     /*
     printf("bytes:\n");
@@ -581,9 +622,9 @@ MP_NOINLINE int main_(int argc, char **argv) {
     printf("    peak  %d\n", m_get_peak_bytes_allocated());
     */
 
-    #if MICROPY_PY_SYS_EXECUTABLE
+#if MICROPY_PY_SYS_EXECUTABLE
     sys_set_excecutable(argv[0]);
-    #endif
+#endif
 
     const int NOTHING_EXECUTED = -2;
     int ret = NOTHING_EXECUTED;
@@ -592,7 +633,8 @@ MP_NOINLINE int main_(int argc, char **argv) {
         if (argv[a][0] == '-') {
             if (strcmp(argv[a], "-i") == 0) {
                 inspect = true;
-            } else if (strcmp(argv[a], "-c") == 0) {
+            }
+            else if (strcmp(argv[a], "-c") == 0) {
                 if (a + 1 >= argc) {
                     return invalid_args();
                 }
@@ -600,7 +642,8 @@ MP_NOINLINE int main_(int argc, char **argv) {
                 set_sys_argv(argv, argc, a + 2); // Then what comes after the command
                 ret = do_str(argv[a + 1]);
                 break;
-            } else if (strcmp(argv[a], "-m") == 0) {
+            }
+            else if (strcmp(argv[a], "-m") == 0) {
                 if (a + 1 >= argc) {
                     return invalid_args();
                 }
@@ -633,7 +676,8 @@ MP_NOINLINE int main_(int argc, char **argv) {
                     mp_hal_set_interrupt_char(-1);
                     mp_handle_pending(MP_HANDLE_PENDING_CALLBACKS_AND_EXCEPTIONS);
                     nlr_pop();
-                } else {
+                }
+                else {
                     // uncaught exception
                     mp_hal_set_interrupt_char(-1);
                     mp_handle_pending(MP_HANDLE_PENDING_CALLBACKS_AND_CLEAR_EXCEPTIONS);
@@ -657,25 +701,32 @@ MP_NOINLINE int main_(int argc, char **argv) {
 
                 ret = 0;
                 break;
-            } else if (strcmp(argv[a], "-X") == 0) {
+            }
+            else if (strcmp(argv[a], "-X") == 0) {
                 a += 1;
-            #if MICROPY_DEBUG_PRINTERS
-            } else if (strcmp(argv[a], "-v") == 0) {
+#if MICROPY_DEBUG_PRINTERS
+            }
+            else if (strcmp(argv[a], "-v") == 0) {
                 mp_verbose_flag++;
-            #endif
-            } else if (strncmp(argv[a], "-O", 2) == 0) {
+#endif
+            }
+            else if (strncmp(argv[a], "-O", 2) == 0) {
                 if (unichar_isdigit(argv[a][2])) {
                     MP_STATE_VM(mp_optimise_value) = argv[a][2] & 0xf;
-                } else {
+                }
+                else {
                     MP_STATE_VM(mp_optimise_value) = 0;
-                    for (char *p = argv[a] + 1; *p && *p == 'O'; p++, MP_STATE_VM(mp_optimise_value)++) {;
+                    for (char* p = argv[a] + 1; *p && *p == 'O'; p++, MP_STATE_VM(mp_optimise_value)++) {
+                        ;
                     }
                 }
-            } else {
+            }
+            else {
                 return invalid_args();
             }
-        } else {
-            char *basedir = realpath(argv[a], NULL);
+        }
+        else {
+            char* basedir = realpath(argv[a], NULL);
             if (basedir == NULL) {
                 mp_printf(&mp_stderr_print, "%s: can't open file '%s': [Errno %d] %s\n", argv[0], argv[a], errno, strerror(errno));
                 // CPython exits with 2 in such case
@@ -684,7 +735,7 @@ MP_NOINLINE int main_(int argc, char **argv) {
             }
 
             // Set base dir of the script as first entry in sys.path.
-            char *p = strrchr(basedir, '/');
+            char* p = strrchr(basedir, '/');
             mp_obj_list_store(mp_sys_path, MP_OBJ_NEW_SMALL_INT(0), mp_obj_new_str_via_qstr(basedir, p - basedir));
             free(basedir);
 
@@ -694,77 +745,90 @@ MP_NOINLINE int main_(int argc, char **argv) {
         }
     }
 
-    const char *inspect_env = getenv("MICROPYINSPECT");
+    const char* inspect_env = getenv("MICROPYINSPECT");
     if (inspect_env && inspect_env[0] != '\0') {
         inspect = true;
     }
-    if (ret == NOTHING_EXECUTED || inspect) {
+    if (ret == NOTHING_EXECUTED) {
+        set_sys_argv(argv, argc, 0);   // optional; gives sys.argv[0] = executable
+        ret = do_default_module();
+
+        // optional fallback to REPL if startup module failed
+        if (ret != 0 && (isatty(0) || inspect)) {
+            prompt_read_history();
+            ret = do_repl();
+            prompt_write_history();
+        }
+    }
+    else if (inspect) {
         if (isatty(0) || inspect) {
             prompt_read_history();
             ret = do_repl();
             prompt_write_history();
-        } else {
+        }
+        else {
             ret = execute_from_lexer(LEX_SRC_STDIN, NULL, MP_PARSE_FILE_INPUT, false);
         }
     }
 
-    #if MICROPY_PY_SYS_SETTRACE
-    MP_STATE_THREAD(prof_trace_callback) = MP_OBJ_NULL;
-    #endif
 
-    #if MICROPY_PY_SYS_ATEXIT
+#if MICROPY_PY_SYS_SETTRACE
+    MP_STATE_THREAD(prof_trace_callback) = MP_OBJ_NULL;
+#endif
+
+#if MICROPY_PY_SYS_ATEXIT
     // Beware, the sys.settrace callback should be disabled before running sys.atexit.
     if (mp_obj_is_callable(MP_STATE_VM(sys_exitfunc))) {
         mp_call_function_0(MP_STATE_VM(sys_exitfunc));
     }
-    #endif
+#endif
 
-    #if MICROPY_PY_MICROPYTHON_MEM_INFO
+#if MICROPY_PY_MICROPYTHON_MEM_INFO
     if (mp_verbose_flag) {
         mp_micropython_mem_info(0, NULL);
     }
-    #endif
+#endif
 
-    #if MICROPY_PY_BLUETOOTH
+#if MICROPY_PY_BLUETOOTH
     int mp_bluetooth_deinit(void);
     mp_bluetooth_deinit();
-    #endif
+#endif
 
-    #if MICROPY_PY_THREAD
+#if MICROPY_PY_THREAD
     mp_thread_deinit();
-    #endif
+#endif
 
-    #if defined(MICROPY_UNIX_COVERAGE)
+#if defined(MICROPY_UNIX_COVERAGE)
     gc_sweep_all();
-    #endif
+#endif
 
     mp_deinit();
 
-    #if MICROPY_ENABLE_GC && !defined(NDEBUG)
+#if MICROPY_ENABLE_GC && !defined(NDEBUG)
     // We don't really need to free memory since we are about to exit the
     // process, but doing so helps to find memory leaks.
-    #if !MICROPY_GC_SPLIT_HEAP
+#if !MICROPY_GC_SPLIT_HEAP
     free(heap);
-    #else
+#else
     for (size_t i = 0; i < MICROPY_GC_SPLIT_HEAP_N_HEAPS; i++) {
         free(heaps[i]);
     }
-    #endif
-    #endif
+#endif
+#endif
 
-    #if MICROPY_PY_SYS_EXECUTABLE && !defined(NDEBUG)
+#if MICROPY_PY_SYS_EXECUTABLE && !defined(NDEBUG)
     // Again, make memory leak detector happy
     free(executable_path);
-    #endif
+#endif
 
     // printf("total bytes = %d\n", m_get_total_bytes_allocated());
     return ret & 0xff;
 }
 
-void nlr_jump_fail(void *val) {
-    #if MICROPY_USE_READLINE == 1
+void nlr_jump_fail(void* val) {
+#if MICROPY_USE_READLINE == 1
     mp_hal_stdio_mode_orig();
-    #endif
+#endif
     fprintf(stderr, "FATAL: uncaught NLR %p\n", val);
     exit(1);
 }
@@ -774,13 +838,13 @@ void nlr_jump_fail(void *val) {
 static uint8_t romfs_buf[4] = { 0xd2, 0xcd, 0x31, 0x00 }; // empty ROMFS
 static const MP_DEFINE_MEMORYVIEW_OBJ(romfs_obj, 'B', 0, sizeof(romfs_buf), romfs_buf);
 
-mp_obj_t mp_vfs_rom_ioctl(size_t n_args, const mp_obj_t *args) {
+mp_obj_t mp_vfs_rom_ioctl(size_t n_args, const mp_obj_t* args) {
     switch (mp_obj_get_int(args[0])) {
-        case MP_VFS_ROM_IOCTL_GET_NUMBER_OF_SEGMENTS:
-            return MP_OBJ_NEW_SMALL_INT(1);
+    case MP_VFS_ROM_IOCTL_GET_NUMBER_OF_SEGMENTS:
+        return MP_OBJ_NEW_SMALL_INT(1);
 
-        case MP_VFS_ROM_IOCTL_GET_SEGMENT:
-            return MP_OBJ_FROM_PTR(&romfs_obj);
+    case MP_VFS_ROM_IOCTL_GET_SEGMENT:
+        return MP_OBJ_FROM_PTR(&romfs_obj);
     }
 
     return MP_OBJ_NEW_SMALL_INT(-MP_EINVAL);

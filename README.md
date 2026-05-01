@@ -1,5 +1,40 @@
 [![Unix CI badge](https://github.com/micropython/micropython/actions/workflows/ports_unix.yml/badge.svg)](https://github.com/micropython/micropython/actions?query=branch%3Amaster+event%3Apush) [![STM32 CI badge](https://github.com/micropython/micropython/actions/workflows/ports_stm32.yml/badge.svg)](https://github.com/micropython/micropython/actions?query=branch%3Amaster+event%3Apush) [![Docs CI badge](https://github.com/micropython/micropython/actions/workflows/docs.yml/badge.svg)](https://docs.micropython.org/) [![codecov](https://codecov.io/gh/micropython/micropython/branch/master/graph/badge.svg?token=I92PfD05sD)](https://codecov.io/gh/micropython/micropython)
 
+
+MicroPython for Windows/MSVC native emitter support
+===================================================
+<p align="center">
+  <img src="https://raw.githubusercontent.com/micropython/micropython/master/logo/upython-with-micro.jpg" alt="MicroPython Logo"/>
+</p>
+
+This repository is a fork of the official [MicroPython](http://www.micropython.org) project, based on **MicroPython v1.28.0**.
+
+It is also based on the ideas and implementation from the unmerged upstream pull request **“windows: Support EMIT_X64/X86 with msvc toolchain”** (PR [#4699](https://github.com/micropython/micropython/pull/4699), commit `44a3ec6`), updated and adapted to the v1.28.0 code base. :contentReference[oaicite:0]{index=0}
+
+The original PR added Windows/MSVC support for `MICROPY_EMIT_X64` and `MICROPY_EMIT_X86` in the Windows port, including Windows x64 calling convention support, MASM assembly for `nlr_push`/`nlr_jump`, and Windows-specific memory-management changes related to native code support. :contentReference[oaicite:1]{index=1}
+
+This fork continues that work with a practical goal: producing a standalone Windows `micropython.exe` built with MSVC that supports:
+
+- runtime `@micropython.native`
+- frozen modules embedded into the executable
+- no Cygwin dependency at runtime
+
+Current practical status of this fork:
+
+- Windows/MSVC build of `micropython.exe`
+- frozen source modules via `freeze_as_str(...)`
+- runtime `@micropython.native` for simple functions
+- stackless configuration with increased stack size for MSVC stability
+- known limitation: avoid `try/except` inside native functions
+
+This fork is intended as a practical Windows/MSVC variant of MicroPython rather than a replacement for the upstream project.
+
+For the official project, documentation, and upstream development, see:
+
+- [Official MicroPython repository](https://github.com/micropython/micropython)
+- [Official documentation](https://docs.micropython.org/)
+
+
 The MicroPython project
 =======================
 <p align="center">

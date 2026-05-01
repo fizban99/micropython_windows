@@ -1,0 +1,5 @@
+module( "usunfish_data.py", base_path="/mnt/d/Projects/micropython-usunfish")
+module( "usunfish_gmv.py", base_path="/mnt/d/Projects/micropython-usunfish")
+module( "usunfish_engine.py", base_path="/mnt/d/Projects/micropython-usunfish")
+module( "sunfish.py", base_path="/mnt/d/Projects/micropython-usunfish")
+module( "uci.py", base_path="/mnt/d/Projects/micropython-usunfish")

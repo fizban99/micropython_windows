@@ -29,6 +29,8 @@
 // Variant-specific definitions.
 #include "mpconfigvariant.h"
 
+#define MICROPY_MODULE_FROZEN_STR     (1)
+
 // By default use MicroPython version of readline
 #ifndef MICROPY_USE_READLINE
 #define MICROPY_USE_READLINE        (1)
@@ -42,7 +44,7 @@
 
 #define MICROPY_ALLOC_PATH_MAX      (260) // see minwindef.h for msvc or limits.h for mingw
 #define MICROPY_PERSISTENT_CODE_LOAD (1)
-#define MICROPY_EMIT_X64            (0)
+#define MICROPY_PY_RANDOM_EXTRA_FUNCS (1)
 #define MICROPY_EMIT_THUMB          (0)
 #define MICROPY_EMIT_INLINE_THUMB   (0)
 #define MICROPY_COMP_MODULE_CONST   (1)
@@ -51,7 +53,7 @@
 #define MICROPY_ENABLE_GC           (1)
 #define MICROPY_ENABLE_FINALISER    (1)
 #define MICROPY_ENABLE_PYSTACK      (1)
-#define MICROPY_STACK_CHECK         (1)
+#define MICROPY_STACK_CHECK         (0)
 #define MICROPY_MALLOC_USES_ALLOCATED_SIZE (1)
 #define MICROPY_MEM_STATS           (1)
 #define MICROPY_DEBUG_PRINTER       (&mp_stderr_print)
@@ -128,8 +130,8 @@
 #define MICROPY_PY_IO_IOBASE        (1)
 #define MICROPY_PY_GC_COLLECT_RETVAL (1)
 #ifndef MICROPY_STACKLESS
-#define MICROPY_STACKLESS           (0)
-#define MICROPY_STACKLESS_STRICT    (0)
+#define MICROPY_STACKLESS           (1)
+#define MICROPY_STACKLESS_STRICT    (1)
 #endif
 
 #define MICROPY_PY_OS               (1)
@@ -177,9 +179,21 @@
 
 extern const struct _mp_print_t mp_stderr_print;
 
+#if defined(__MINGW64__) || defined(__MINGW32__)
+#define MICROPY_NLR_SETJMP          (1)
+#endif
+
 #ifdef _MSC_VER
 #define MICROPY_GCREGS_SETJMP       (1)
 #define MICROPY_USE_INTERNAL_PRINTF (0)
+#define MICROPY_NLR_SETJMP          (0)
+
+#if defined(_WIN64)
+#define MICROPY_EMIT_X64            (1)
+#elif defined(_WIN32)
+#define MICROPY_EMIT_X86            (1)
+#endif
+
 #endif
 
 #define MICROPY_ENABLE_EMERGENCY_EXCEPTION_BUF   (1)
@@ -208,6 +222,29 @@ typedef long long mp_off_t;
 typedef long mp_off_t;
 #endif
 
+#if MICROPY_PY_OS_DUPTERM
+#define MP_PLAT_PRINT_STRN(str, len) mp_hal_stdout_tx_strn_cooked(str, len)
+void mp_hal_dupterm_tx_strn(const char *str, size_t len);
+#else
+#include <unistd.h>
+#define MP_PLAT_PRINT_STRN(str, len) do { int ret = write(1, str, len); (void)ret; } while (0)
+#define mp_hal_dupterm_tx_strn(s, l)
+#endif
+
+#define MICROPY_PORT_BUILTINS \
+    { MP_ROM_QSTR(MP_QSTR_open), MP_ROM_PTR(&mp_builtin_open_obj) },
+
+extern const struct _mp_obj_module_t mp_module_os;
+extern const struct _mp_obj_module_t mp_module_time;
+#define MICROPY_PORT_BUILTIN_MODULES \
+    { MP_ROM_QSTR(MP_QSTR_utime), MP_ROM_PTR(&mp_module_time) }, \
+    { MP_ROM_QSTR(MP_QSTR_umachine), MP_ROM_PTR(&mp_module_machine) }, \
+    { MP_ROM_QSTR(MP_QSTR_uos), MP_ROM_PTR(&mp_module_os) }, \
+
+#define MICROPY_PORT_ROOT_POINTERS \
+    char *readline_hist[MICROPY_READLINE_HISTORY_SIZE];
+    void *mmap_region_head;
+
 #define MP_STATE_PORT               MP_STATE_VM
 
 #define MICROPY_MPHALPORT_H         "windows_mphal.h"
@@ -217,6 +254,12 @@ typedef long mp_off_t;
 
 #include "realpath.h"
 #include "init.h"
+
+void mp_win_alloc_exec(size_t min_size, void** ptr, size_t *size);
+void mp_win_free_exec(void *ptr, size_t size);
+void mp_win_mark_exec(void);
+#define MP_PLAT_ALLOC_EXEC(min_size, ptr, size) mp_win_alloc_exec(min_size, ptr, size)
+#define MP_PLAT_FREE_EXEC(ptr, size) mp_win_free_exec(ptr, size)
 
 #ifdef __GNUC__
 #define MP_NOINLINE __attribute__((noinline))

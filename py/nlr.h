@@ -26,8 +26,8 @@
 #ifndef MICROPY_INCLUDED_PY_NLR_H
 #define MICROPY_INCLUDED_PY_NLR_H
 
-// non-local return
-// exception handling, basically a stack of setjmp/longjmp buffers
+ // non-local return
+ // exception handling, basically a stack of setjmp/longjmp buffers
 
 #include <limits.h>
 #include <assert.h>
@@ -57,52 +57,52 @@
 #else
 #define MICROPY_NLR_OS_WINDOWS 0
 #endif
-#if defined(__i386__)
-    #define MICROPY_NLR_X86 (1)
-    #define MICROPY_NLR_NUM_REGS (MICROPY_NLR_NUM_REGS_X86)
-#elif defined(__x86_64__)
-    #define MICROPY_NLR_X64 (1)
-    #if MICROPY_NLR_OS_WINDOWS
-        #define MICROPY_NLR_NUM_REGS (MICROPY_NLR_NUM_REGS_X64_WIN)
-    #else
-        #define MICROPY_NLR_NUM_REGS (MICROPY_NLR_NUM_REGS_X64)
-    #endif
-#elif defined(__thumb2__) || defined(__thumb__) || defined(__arm__)
-    #define MICROPY_NLR_THUMB (1)
-    #if defined(__SOFTFP__)
-        #define MICROPY_NLR_NUM_REGS (MICROPY_NLR_NUM_REGS_ARM_THUMB)
-    #else
-        // With hardware FP registers s16-s31 are callee save so in principle
-        // should be saved and restored by the NLR code.  gcc only uses s16-s21
-        // so only save/restore those as an optimisation.
-        #define MICROPY_NLR_NUM_REGS (MICROPY_NLR_NUM_REGS_ARM_THUMB_FP)
-    #endif
-#elif defined(__aarch64__)
-    #define MICROPY_NLR_AARCH64 (1)
-    #define MICROPY_NLR_NUM_REGS (MICROPY_NLR_NUM_REGS_AARCH64)
-#elif defined(__xtensa__)
-    #define MICROPY_NLR_XTENSA (1)
-    #define MICROPY_NLR_NUM_REGS (MICROPY_NLR_NUM_REGS_XTENSA)
-#elif defined(__powerpc__)
-    #define MICROPY_NLR_POWERPC (1)
-    // this could be less but using 128 for safety
-    #define MICROPY_NLR_NUM_REGS (128)
-#elif defined(__mips__)
-    #define MICROPY_NLR_MIPS (1)
-    #define MICROPY_NLR_NUM_REGS (MICROPY_NLR_NUM_REGS_MIPS)
-#elif defined(__riscv)
-    #if __riscv_xlen == 32
-        #define MICROPY_NLR_NUM_REGS (MICROPY_NLR_NUM_REGS_RV32I)
-        #define MICROPY_NLR_RV32I (1)
-    #elif __riscv_xlen == 64
-        #define MICROPY_NLR_NUM_REGS (MICROPY_NLR_NUM_REGS_RV64I)
-        #define MICROPY_NLR_RV64I (1)
-    #else
-        #error Unsupported RISC-V variant.
-    #endif
+#if defined(__i386__) || (defined(_WIN32) && !defined(_WIN64))
+#define MICROPY_NLR_X86 (1)
+#define MICROPY_NLR_NUM_REGS (MICROPY_NLR_NUM_REGS_X86)
+#elif defined(__x86_64__) || defined(_WIN64)
+#define MICROPY_NLR_X64 (1)
+#if MICROPY_NLR_OS_WINDOWS
+#define MICROPY_NLR_NUM_REGS (MICROPY_NLR_NUM_REGS_X64_WIN)
 #else
-    #define MICROPY_NLR_SETJMP (1)
-    //#warning "No native NLR support for this arch, using setjmp implementation"
+#define MICROPY_NLR_NUM_REGS (MICROPY_NLR_NUM_REGS_X64)
+#endif
+#elif defined(__thumb2__) || defined(__thumb__) || defined(__arm__)
+#define MICROPY_NLR_THUMB (1)
+#if defined(__SOFTFP__)
+#define MICROPY_NLR_NUM_REGS (MICROPY_NLR_NUM_REGS_ARM_THUMB)
+#else
+    // With hardware FP registers s16-s31 are callee save so in principle
+    // should be saved and restored by the NLR code.  gcc only uses s16-s21
+    // so only save/restore those as an optimisation.
+#define MICROPY_NLR_NUM_REGS (MICROPY_NLR_NUM_REGS_ARM_THUMB_FP)
+#endif
+#elif defined(__aarch64__)
+#define MICROPY_NLR_AARCH64 (1)
+#define MICROPY_NLR_NUM_REGS (MICROPY_NLR_NUM_REGS_AARCH64)
+#elif defined(__xtensa__)
+#define MICROPY_NLR_XTENSA (1)
+#define MICROPY_NLR_NUM_REGS (MICROPY_NLR_NUM_REGS_XTENSA)
+#elif defined(__powerpc__)
+#define MICROPY_NLR_POWERPC (1)
+// this could be less but using 128 for safety
+#define MICROPY_NLR_NUM_REGS (128)
+#elif defined(__mips__)
+#define MICROPY_NLR_MIPS (1)
+#define MICROPY_NLR_NUM_REGS (MICROPY_NLR_NUM_REGS_MIPS)
+#elif defined(__riscv)
+#if __riscv_xlen == 32
+#define MICROPY_NLR_NUM_REGS (MICROPY_NLR_NUM_REGS_RV32I)
+#define MICROPY_NLR_RV32I (1)
+#elif __riscv_xlen == 64
+#define MICROPY_NLR_NUM_REGS (MICROPY_NLR_NUM_REGS_RV64I)
+#define MICROPY_NLR_RV64I (1)
+#else
+#error Unsupported RISC-V variant.
+#endif
+#else
+#define MICROPY_NLR_SETJMP (1)
+//#warning "No native NLR support for this arch, using setjmp implementation"
 #endif
 #endif
 
@@ -118,30 +118,30 @@ struct _nlr_buf_t {
 
     // Pointer to the previous nlr_buf_t in the chain.
     // Or NULL if it's the top-level one.
-    nlr_buf_t *prev;
+    nlr_buf_t* prev;
 
     // The exception that is being raised:
     // - NULL means the jump is because of a VM abort (only if MICROPY_ENABLE_VM_ABORT enabled)
     // - otherwise it's always a concrete object (an exception instance)
-    void *ret_val;
+    void* ret_val;
 
-    #if MICROPY_NLR_SETJMP
+#if MICROPY_NLR_SETJMP
     jmp_buf jmpbuf;
-    #else
-    void *regs[MICROPY_NLR_NUM_REGS];
-    #endif
+#else
+    void* regs[MICROPY_NLR_NUM_REGS];
+#endif
 
-    #if MICROPY_ENABLE_PYSTACK
-    void *pystack;
-    #endif
+#if MICROPY_ENABLE_PYSTACK
+    void* pystack;
+#endif
 };
 
-typedef void (*nlr_jump_callback_fun_t)(void *ctx);
+typedef void (*nlr_jump_callback_fun_t)(void* ctx);
 
 typedef struct _nlr_jump_callback_node_t nlr_jump_callback_node_t;
 
 struct _nlr_jump_callback_node_t {
-    nlr_jump_callback_node_t *prev;
+    nlr_jump_callback_node_t* prev;
     nlr_jump_callback_fun_t fun;
 };
 
@@ -172,12 +172,12 @@ struct _nlr_jump_callback_node_t {
 // For this case it is safe to call nlr_push_tail() first.
 #define nlr_push(buf) (nlr_push_tail(buf), setjmp((buf)->jmpbuf))
 #else
-unsigned int nlr_push(nlr_buf_t *);
+unsigned int nlr_push(nlr_buf_t*);
 #endif
 
-unsigned int nlr_push_tail(nlr_buf_t *top);
+unsigned int nlr_push_tail(nlr_buf_t* top);
 void nlr_pop(void);
-MP_NORETURN void nlr_jump(void *val);
+MP_NORETURN void nlr_jump(void* val);
 
 #if MICROPY_ENABLE_VM_ABORT
 #define nlr_set_abort(buf) MP_STATE_VM(nlr_abort) = buf
@@ -188,7 +188,7 @@ MP_NORETURN void nlr_jump_abort(void);
 // This must be implemented by a port.  It's called by nlr_jump
 // if no nlr buf has been pushed.  It must not return, but rather
 // should bail out with a fatal error.
-MP_NORETURN void nlr_jump_fail(void *val);
+MP_NORETURN void nlr_jump_fail(void* val);
 
 // use nlr_raise instead of nlr_jump so that debugging is easier
 #ifndef MICROPY_DEBUG_NLR
@@ -213,13 +213,13 @@ MP_NORETURN void nlr_jump_fail(void *val);
 // Push a callback on to the linked-list of NLR jump callbacks.  The `node` pointer must
 // be on the C stack.  The `fun` callback will be executed if an NLR jump is taken which
 // unwinds the C stack through this `node`.
-void nlr_push_jump_callback(nlr_jump_callback_node_t *node, nlr_jump_callback_fun_t fun);
+void nlr_push_jump_callback(nlr_jump_callback_node_t* node, nlr_jump_callback_fun_t fun);
 
 // Pop a callback from the linked-list of NLR jump callbacks.  The corresponding function
 // will be called if `run_callback` is true.
 void nlr_pop_jump_callback(bool run_callback);
 
 // Pop and call all NLR jump callbacks that were registered after `nlr` buffer was pushed.
-void nlr_call_jump_callbacks(nlr_buf_t *nlr);
+void nlr_call_jump_callbacks(nlr_buf_t* nlr);
 
 #endif // MICROPY_INCLUDED_PY_NLR_H

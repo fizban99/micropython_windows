@@ -122,7 +122,7 @@ typedef long mp_off_t;
 
 // MSVC specifics - see windows/mpconfigport.h for explanation
 #ifdef _MSC_VER
-
+#define MICROPY_NLR_SETJMP          (1)
 #define MP_ENDIANNESS_LITTLE        (1)
 #define MP_NORETURN                 __declspec(noreturn)
 #define MP_NOINLINE                 __declspec(noinline)

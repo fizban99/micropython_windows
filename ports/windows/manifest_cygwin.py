@@ -1,0 +1,5 @@
+freeze( "/mnt/d/Projects/micropython-usunfish", "usunfish_data.py")
+freeze( "/mnt/d/Projects/micropython-usunfish", "usunfish_gmv.py")
+freeze( "/mnt/d/Projects/micropython-usunfish", "usunfish_engine.py")
+freeze( "/mnt/d/Projects/micropython-usunfish", "sunfish.py")
+freeze( "/mnt/d/Projects/micropython-usunfish", "uci.py")

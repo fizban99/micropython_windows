@@ -2,33 +2,52 @@
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003" ToolsVersion="14.0">
   <Import Project="paths.props" Condition="'$(PyPathsIncluded)' != 'True'"/>
   <ItemGroup>
-    <PyCoreSource Include="$(PyBaseDir)py\*.c" />
-    <PyExtModSource Include="$(PyBaseDir)extmod\machine_mem.c" />
-    <PyExtModSource Include="$(PyBaseDir)extmod\machine_pinbase.c" />
-    <PyExtModSource Include="$(PyBaseDir)extmod\machine_pulse.c" />
-    <PyExtModSource Include="$(PyBaseDir)extmod\machine_signal.c" />
-    <PyExtModSource Include="$(PyBaseDir)extmod\modasyncio.c" />
-    <PyExtModSource Include="$(PyBaseDir)extmod\modbinascii.c" />
-    <PyExtModSource Include="$(PyBaseDir)extmod\moductypes.c" />
-    <PyExtModSource Include="$(PyBaseDir)extmod\moddeflate.c" />
-    <PyExtModSource Include="$(PyBaseDir)extmod\modhashlib.c" />
-    <PyExtModSource Include="$(PyBaseDir)extmod\modheapq.c" />
-    <PyExtModSource Include="$(PyBaseDir)extmod\modjson.c" />
-    <PyExtModSource Include="$(PyBaseDir)extmod\modmachine.c" />
-    <PyExtModSource Include="$(PyBaseDir)extmod\modmarshal.c" />
-    <PyExtModSource Include="$(PyBaseDir)extmod\modos.c" />
-    <PyExtModSource Include="$(PyBaseDir)extmod\modrandom.c" />
-    <PyExtModSource Include="$(PyBaseDir)extmod\modre.c" />
-    <PyExtModSource Include="$(PyBaseDir)extmod\modselect.c" />
-    <PyExtModSource Include="$(PyBaseDir)extmod\modtime.c" />
-    <PyExtModSource Include="$(PyBaseDir)extmod\virtpin.c" />
-    <PyExtModSource Include="$(PyBaseDir)extmod\vfs.c" />
-    <PyExtModSource Include="$(PyBaseDir)extmod\vfs_posix.c" />
-    <PyExtModSource Include="$(PyBaseDir)extmod\vfs_posix_file.c" />
-    <PyExtModSource Include="$(PyBaseDir)extmod\vfs_reader.c" />
+		  <ClCompile Include="$(PyBaseDir)py\*.c" />
+		  <ClCompile Include="$(PyBaseDir)ports\windows\*.c" />
+		  <ClCompile Include="$(PyBaseDir)ports\windows\msvc\*.c" />
+		  <ClCompile Include="$(PyBaseDir)lib\mp-readline\*.c" />
+		  <ClCompile Include="$(PyBaseDir)ports\unix\input.c" />
+		  <ClCompile Include="$(PyBaseDir)extmod\modos.c" />
+		  <ClCompile Include="$(PyBaseDir)extmod\modtime.c" />
+		  <ClCompile Include="$(PyBaseDir)extmod\modmachine.c" />
+		  <ClCompile Include="$(PyBaseDir)ports\unix\main.c" />
+	  
+
+	      <ClCompile Include="$(PyBaseDir)extmod\machine_mem.c" />
+		  <ClCompile Include="$(PyBaseDir)extmod\machine_pinbase.c" />
+		  <ClCompile Include="$(PyBaseDir)extmod\machine_pulse.c" />
+		  <ClCompile Include="$(PyBaseDir)extmod\machine_signal.c" />
+		  <ClCompile Include="$(PyBaseDir)extmod\modasyncio.c" />
+		  <ClCompile Include="$(PyBaseDir)extmod\modbinascii.c" />
+		  <ClCompile Include="$(PyBaseDir)extmod\moductypes.c" />
+		  <ClCompile Include="$(PyBaseDir)extmod\moddeflate.c" />
+		  <ClCompile Include="$(PyBaseDir)extmod\modhashlib.c" />
+		  <ClCompile Include="$(PyBaseDir)extmod\modheapq.c" />
+		  <ClCompile Include="$(PyBaseDir)extmod\modjson.c" />
+		  <ClCompile Include="$(PyBaseDir)extmod\modmarshal.c" />
+		  <ClCompile Include="$(PyBaseDir)extmod\modrandom.c" />
+		  <ClCompile Include="$(PyBaseDir)extmod\modre.c" />
+		  <ClCompile Include="$(PyBaseDir)extmod\modselect.c" />
+		  <ClCompile Include="$(PyBaseDir)extmod\virtpin.c" />
+		  <ClCompile Include="$(PyBaseDir)extmod\vfs.c" />
+		  <ClCompile Include="$(PyBaseDir)extmod\vfs_posix.c" />
+		  <ClCompile Include="$(PyBaseDir)extmod\vfs_posix_file.c" />
+		  <ClCompile Include="$(PyBaseDir)extmod\vfs_reader.c" />
   </ItemGroup>
   <ItemGroup>
     <PyCoreInclude Include="$(PyBaseDir)py\*.h" />
     <PyExtModInclude Include="$(PyBaseDir)extmod\*.h" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <MASM Include="$(PyBaseDir)ports\windows\msvc\asmnlrx64.asm" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <MASM Include="$(PyBaseDir)ports\windows\msvc\asmnlrx64.asm" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <MASM Include="$(PyBaseDir)ports\windows\msvc\asmnlrx86.asm" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <MASM Include="$(PyBaseDir)ports\windows\msvc\asmnlrx86.asm" />
   </ItemGroup>
 </Project>
