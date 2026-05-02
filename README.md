@@ -9,9 +9,9 @@ MicroPython for Windows/MSVC native emitter support
 
 This repository is a fork of the official [MicroPython](http://www.micropython.org) project, based on **MicroPython v1.28.0**.
 
-It is also based on the ideas and implementation from the unmerged upstream pull request **“windows: Support EMIT_X64/X86 with msvc toolchain”** (PR [#4699](https://github.com/micropython/micropython/pull/4699), commit `44a3ec6`), updated and adapted to the v1.28.0 code base. :contentReference[oaicite:0]{index=0}
+It is also based on the ideas and implementation from the unmerged upstream pull request **“windows: Support EMIT_X64/X86 with msvc toolchain”** (PR [#4699](https://github.com/micropython/micropython/pull/4699), commit `44a3ec6`), updated and adapted to the v1.28.0 code base. 
 
-The original PR added Windows/MSVC support for `MICROPY_EMIT_X64` and `MICROPY_EMIT_X86` in the Windows port, including Windows x64 calling convention support, MASM assembly for `nlr_push`/`nlr_jump`, and Windows-specific memory-management changes related to native code support. :contentReference[oaicite:1]{index=1}
+The original PR added Windows/MSVC support for `MICROPY_EMIT_X64` and `MICROPY_EMIT_X86` in the Windows port, including Windows x64 calling convention support, MASM assembly for `nlr_push`/`nlr_jump`, and Windows-specific memory-management changes related to native code support. 
 
 This fork continues that work with a practical goal: producing a standalone Windows `micropython.exe` built with MSVC that supports:
 
@@ -27,7 +27,7 @@ Current practical status of this fork:
 - stackless configuration with increased stack size for MSVC stability
 - known limitation: avoid `try/except` inside native functions
 
-This fork is intended as a practical Windows/MSVC variant of MicroPython rather than a replacement for the upstream project.
+This fork is intended as a practical Windows/MSVC variant of MicroPython rather than a replacement for the upstream project. In particular this project also includes a modified main.c that will import uci by default, since it is meant as a bundled runtime for the [uSunfish engine](https://github.com/fizban99/micropython-usunfish).
 
 For the official project, documentation, and upstream development, see:
 
